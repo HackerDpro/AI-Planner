@@ -860,7 +860,57 @@ export default function App() {
     return daysSessions;
   }, [generatedPlan, selectedDay]);
 
-  const todaysSessions = useMemo(() => getTodaysPlan(), [getTodaysPlan]);
+    const todaysSessions = useMemo(() => getTodaysPlan(), [getTodaysPlan]);
+
+  // --- ICS EXPORT FUNCTION ---
+  const generateICalendar = () => {
+    if (!generatedPlan || generatedPlan.length === 0) {
+      alert("No plan to export!");
+      return;
+    }
+
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//StudyAI Ultimate Planner//NONSGML v1.0//EN',
+    ];
+
+    generatedPlan.forEach(session => {
+      // Only export study and rest sessions as events
+      if (session.type !== 'exam') {
+        const startDateTime = session.date.replace(/-/g, '') + 'T' + session.startTime.replace(/:/g, '') + '00';
+        const endDateTime = session.date.replace(/-/g, '') + 'T' + session.endTime.replace(/:/g, '') + '00';
+        
+        const summary = session.type === 'study' ? `Study: ${session.subject}` : `BREAK: ${session.subject}`;
+        const description = session.description;
+
+        icsContent.push('BEGIN:VEVENT');
+        icsContent.push(`UID:${session.id}@studyai-ultimate.netlify.app`);
+        icsContent.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').substring(0, 15)}Z`);
+        icsContent.push(`DTSTART:${startDateTime}`);
+        icsContent.push(`DTEND:${endDateTime}`);
+        icsContent.push(`SUMMARY:${summary}`);
+        icsContent.push(`DESCRIPTION:${description}`);
+        icsContent.push('END:VEVENT');
+      }
+    });
+
+    icsContent.push('END:VCALENDAR');
+    const finalContent = icsContent.join('\n');
+
+    const blob = new Blob([finalContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `StudyAI_Plan_${userData.name}_${new Date().toISOString().split('T')[0]}.ics`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // --- RENDER ---
   return (
@@ -905,7 +955,7 @@ export default function App() {
                 <button onClick={() => setStep(1)} className="px-6 py-3 bg-rose-50 border border-rose-200 text-rose-600 font-bold rounded-xl hover:bg-rose-100 transition flex items-center gap-2">
                    <RotateCcw size={20} /> Restart Planning
                 </button>
-                <button className="px-6 py-3 bg-blue-50 border border-blue-200 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition flex items-center gap-2">
+                <button onClick={generateICalendar} className="px-6 py-3 bg-blue-50 border border-blue-200 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition flex items-center gap-2">
                    <Download size={20} /> Export Plan
                 </button>
             </div>
