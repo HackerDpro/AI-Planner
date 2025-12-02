@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// Add School icon to imports
 import { 
   Calendar as CalendarIcon, Clock, BookOpen, CheckCircle, ChevronRight, 
   ChevronLeft, Save, Download, Trash2, Plus, Brain, AlertCircle, X, 
   Zap, Coffee, Moon, Sun, Activity, BarChart3, Play, Pause, RotateCcw,
-  Sliders, Sparkles, Flame, Timer
+  Sliders, Sparkles, Flame, Timer, School // Add School icon here
 } from 'lucide-react';
 
 /**
@@ -514,6 +515,134 @@ const StepBlocked = ({ data, updateBlocked, onNext, onBack }) => {
   );
 };
 
+// NEW: School Schedule Component
+const StepSchoolSchedule = ({ data, onChange, onNext, onBack }) => {
+  const updateSchoolSchedule = (day, field, value) => {
+    const newSchedule = { ...data.schoolSchedule.weeklySchedule };
+    if (field === 'hasSchool') {
+      newSchedule[day].hasSchool = value;
+      // Reset times if school is disabled
+      if (!value) {
+        newSchedule[day].start = '';
+        newSchedule[day].end = '';
+      } else {
+        // Set default times if enabling
+        newSchedule[day].start = '08:00';
+        newSchedule[day].end = '15:00';
+      }
+    } else {
+      newSchedule[day][field] = value;
+    }
+    
+    onChange('schoolSchedule', {
+      ...data.schoolSchedule,
+      weeklySchedule: newSchedule
+    });
+  };
+
+  const updateDate = (field, value) => {
+    onChange('schoolSchedule', {
+      ...data.schoolSchedule,
+      [field]: value
+    });
+  };
+
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  return (
+    <QuestionCard 
+      title="5. School Schedule" 
+      description="When do you have school? We'll schedule study sessions around your classes."
+      onNext={onNext} 
+      onBack={onBack}
+    >
+      <div className="space-y-8">
+        {/* School Dates Range */}
+        <div className="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-100">
+          <h3 className="font-bold text-lg text-indigo-800 mb-4 flex items-center gap-2">
+            <CalendarIcon size={20} /> School Term Dates (Optional)
+          </h3>
+          <p className="text-sm text-indigo-600/70 mb-4">
+            If your school has specific start/end dates (like semester breaks), add them here.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-indigo-700 mb-2">School Starts</label>
+              <input 
+                type="date" 
+                className="w-full p-3 bg-white border border-indigo-200 rounded-xl font-medium"
+                value={data.schoolSchedule.startDate || ''}
+                onChange={(e) => updateDate('startDate', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-indigo-700 mb-2">School Ends</label>
+              <input 
+                type="date" 
+                className="w-full p-3 bg-white border border-indigo-200 rounded-xl font-medium"
+                value={data.schoolSchedule.endDate || ''}
+                onChange={(e) => updateDate('endDate', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Weekly Schedule */}
+        <div>
+          <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+            <School size={20} /> Weekly School Hours
+          </h3>
+          <div className="space-y-3">
+            {daysOfWeek.map(day => {
+              const daySchedule = data.schoolSchedule.weeklySchedule[day];
+              return (
+                <div key={day} className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 transition">
+                  <div className="w-8">
+                    <input
+                      type="checkbox"
+                      id={`school-${day}`}
+                      checked={daySchedule.hasSchool}
+                      onChange={(e) => updateSchoolSchedule(day, 'hasSchool', e.target.checked)}
+                      className="h-5 w-5 text-indigo-600 rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label htmlFor={`school-${day}`} className="font-bold text-slate-800">
+                      {day}
+                    </label>
+                  </div>
+                  {daySchedule.hasSchool ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={daySchedule.start}
+                        onChange={(e) => updateSchoolSchedule(day, 'start', e.target.value)}
+                        className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-medium"
+                      />
+                      <span className="text-slate-400">to</span>
+                      <input
+                        type="time"
+                        value={daySchedule.end}
+                        onChange={(e) => updateSchoolSchedule(day, 'end', e.target.value)}
+                        className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-medium"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 text-sm font-medium">No school</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-sm text-slate-500 mt-4">
+            💡 The AI will avoid scheduling study sessions during school hours. On days without school, more study time will be available.
+          </p>
+        </div>
+      </div>
+    </QuestionCard>
+  );
+};
+
 const CalendarView = ({ viewDate, setViewDate, selectedDay, setSelectedDay, generatedPlan, userData }) => {
   const currentMonth = viewDate.getMonth();
   const currentYear = viewDate.getFullYear();
@@ -658,7 +787,21 @@ export default function App() {
   const [userData, setUserData] = useState({
     name: '', startDate: new Date().toISOString().split('T')[0],
     dailyStart: '09:00', dailyEnd: '21:00', maxStudyHours: 4,
-    chronotype: 'afternoon', exams: [], blockedTimes: []
+    chronotype: 'afternoon', exams: [], blockedTimes: [],
+    // Add school schedule with default values
+    schoolSchedule: {
+      startDate: '', // When school starts (optional)
+      endDate: '',   // When school ends (optional)
+      weeklySchedule: {
+        Monday: { start: '08:00', end: '15:00', hasSchool: true },
+        Tuesday: { start: '08:00', end: '15:00', hasSchool: true },
+        Wednesday: { start: '08:00', end: '15:00', hasSchool: true },
+        Thursday: { start: '08:00', end: '15:00', hasSchool: true },
+        Friday: { start: '08:00', end: '15:00', hasSchool: true },
+        Saturday: { start: '09:00', end: '13:00', hasSchool: false },
+        Sunday: { start: '09:00', end: '13:00', hasSchool: false }
+      }
+    }
   });
 
   useEffect(() => {
@@ -687,7 +830,7 @@ export default function App() {
     
     // Simulate API delay
     setTimeout(() => {
-      const { exams, dailyStart, dailyEnd, maxStudyHours, blockedTimes, startDate } = userData;
+      const { exams, dailyStart, dailyEnd, maxStudyHours, blockedTimes, startDate, schoolSchedule } = userData;
       
       const sessions = [];
       const userMaxMinutes = parseFloat(maxStudyHours) * 60;
@@ -714,8 +857,27 @@ export default function App() {
           sessions.push({ id: generateId(), subject: e.subject, date: dateStr, startTime: "00:00", endTime: "23:59", description: `🎯 EXAM DAY: ${e.subject}. You got this!`, type: 'exam', duration: 1440 });
         });
 
-        let currentTime = new Date(`${dateStr}T${dailyStart}`);
-        const endTime = new Date(`${dateStr}T${dailyEnd}`);
+        // Check if it's a school day
+        const daySchedule = schoolSchedule.weeklySchedule[dayName];
+        let dayStart = dailyStart;
+        let dayEnd = dailyEnd;
+        
+        // If it's a school day, adjust available time
+        if (daySchedule && daySchedule.hasSchool && daySchedule.start && daySchedule.end) {
+          // School time becomes blocked time, so we can only study outside school hours
+          // Usually study before school or after school
+          // For simplicity, we'll schedule after school
+          dayStart = daySchedule.end; // Start studying after school ends
+          // Make sure we don't exceed daily end
+          if (dayStart > dailyEnd) {
+            // No time left for studying today
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
+        }
+        
+        let currentTime = new Date(`${dateStr}T${dayStart}`);
+        const endTime = new Date(`${dateStr}T${dayEnd}`);
         
         let dailyStudyMinutes = 0;
         let sessionsSinceLongBreak = 0;
@@ -731,6 +893,20 @@ export default function App() {
           // Check Blocked Time & Advance
           let isBlocked = false;
           let nextAvailableTime = new Date(currentTime);
+          
+          // Check if current time is during school hours (even if we started after school)
+          if (daySchedule && daySchedule.hasSchool && daySchedule.start && daySchedule.end) {
+            const [sH, sM] = daySchedule.start.split(':').map(Number);
+            const [eH, eM] = daySchedule.end.split(':').map(Number);
+            const schoolStart = sH * 60 + sM;
+            const schoolEnd = eH * 60 + eM;
+            
+            if (currentMinutes >= schoolStart && currentMinutes < schoolEnd) {
+              isBlocked = true;
+              nextAvailableTime = new Date(currentTime);
+              nextAvailableTime.setHours(eH, eM);
+            }
+          }
           
           for (const block of blockedTimes) {
             const [sH, sM] = block.start.split(':').map(Number);
@@ -860,7 +1036,7 @@ export default function App() {
     return daysSessions;
   }, [generatedPlan, selectedDay]);
 
-    const todaysSessions = useMemo(() => getTodaysPlan(), [getTodaysPlan]);
+  const todaysSessions = useMemo(() => getTodaysPlan(), [getTodaysPlan]);
 
   // --- ICS EXPORT FUNCTION ---
   const generateICalendar = () => {
@@ -924,7 +1100,7 @@ export default function App() {
            <div className="flex items-center gap-2 font-extrabold text-xl tracking-tight text-slate-900">
              <div className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white p-1.5 rounded-lg"><Brain size={20} /></div> StudyAI <span className="text-cyan-600 hidden sm:inline">Ultimate</span>
            </div>
-           {step > 0 && step < 6 && <div className="flex gap-1">{[1,2,3,4].map(n => <div key={n} className={`h-1.5 w-6 rounded-full transition-all duration-500 ${step >= n ? 'bg-cyan-500' : 'bg-slate-200'}`}></div>)}</div>}
+           {step > 0 && step < 6 && <div className="flex gap-1">{[1,2,3,4,5].map(n => <div key={n} className={`h-1.5 w-6 rounded-full transition-all duration-500 ${step >= n ? 'bg-cyan-500' : 'bg-slate-200'}`}></div>)}</div>}
         </div>
       </nav>
 
@@ -933,7 +1109,8 @@ export default function App() {
         {step === 1 && <StepBasics data={userData} onChange={(f, v) => setUserData(p => ({...p, [f]: v}))} onNext={() => setStep(2)} onBack={null} />}
         {step === 2 && <StepChronotype data={userData} onChange={(f, v) => setUserData(p => ({...p, [f]: v}))} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
         {step === 3 && <StepExams data={userData} updateExams={v => setUserData(p => ({...p, exams: v}))} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-        {step === 4 && <StepBlocked data={userData} updateBlocked={v => setUserData(p => ({...p, blockedTimes: v}))} onNext={generateSchedule} onBack={() => setStep(3)} isLast={true} nextLabel={loading ? 'Generating...' : 'Generate Plan'} />}
+        {step === 4 && <StepBlocked data={userData} updateBlocked={v => setUserData(p => ({...p, blockedTimes: v}))} onNext={() => setStep(5)} onBack={() => setStep(3)} />}
+        {step === 5 && <StepSchoolSchedule data={userData} onChange={(f, v) => setUserData(p => ({...p, [f]: v}))} onNext={generateSchedule} onBack={() => setStep(4)} isLast={true} nextLabel={loading ? 'Generating...' : 'Generate Plan'} />}
         
         {step === 6 && (
           <div className="animate-fade-in">
