@@ -2023,135 +2023,142 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8">
-        {step === 0 && <IntroStep onStart={() => setStep(1)} />}
-        {step === 1 && (
-          <StepBasics
-            data={userData}
-            onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
-            onNext={() => setStep(2)}
-            onBack={null}
-          />
-        )}
-        {step === 2 && (
-          <StepChronotype
-            data={userData}
-            onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
-            onNext={() => setStep(3)}
-            onBack={() => setStep(1)}
-          />
-        )}
-        {step === 3 && (
-          <StepExams
-            data={userData}
-            updateExams={(v) => setUserData((p) => ({ ...p, exams: v }))}
-            onNext={() => setStep(4)}
-            onBack={() => setStep(2)}
-          />
-        )}
-        {step === 4 && (
-          <StepBlocked
-            data={userData}
-            updateBlocked={(v) =>
-              setUserData((p) => ({ ...p, blockedTimes: v }))
-            }
-            onNext={() => setStep(5)}
-            onBack={() => setStep(3)}
-          />
-        )}
-        {step === 5 && (
-          <StepSchoolSchedule
-            data={userData}
-            onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
-            onNext={generateSchedule}
-            onBack={() => setStep(4)}
-            isLast={true}
-            nextLabel={loading ? "Generating..." : "Generate Plan"}
-          />
-        )}
-
-        {step === 6 && (
-          <div className="animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-3 md:gap-0">
-              <div className="w-full">
-                <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-1 md:mb-2">
-                  Plan{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">
-                    Generated
-                  </span>{" "}
-                  Successfully!
-                </h1>
-                <p className="text-base md:text-xl text-slate-500">
-                  Here is your intelligent study schedule, {userData.name}.
-                </p>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto justify-end">
-                <button
-                  onClick={handleShare}
-                  className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg flex items-center gap-1 md:gap-2 text-sm md:text-base"
-                >
-                  <Share2 size={16} className="md:w-5 md:h-5" /> Share
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg flex items-center gap-1 md:gap-2 text-sm md:text-base"
-                >
-                  <Printer size={16} className="md:w-5 md:h-5" /> Print
-                </button>
-              </div>
-            </div>
-
-            <RealTimeStatus
-              generatedPlan={generatedPlan}
-              userName={userData.name}
-              onStartStudy={() => setStudyModeOpen(true)}
-              stats={stats}
+      <div className="flex flex-col items-center w-full">
+        <main className="w-full max-w-7xl px-3 sm:px-4 md:px-6 py-4 md:py-8">
+          {step === 0 && <IntroStep onStart={() => setStep(1)} />}
+          {step === 1 && (
+            <StepBasics
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={() => setStep(2)}
+              onBack={null}
             />
+          )}
+          {step === 2 && (
+            <StepChronotype
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
+            />
+          )}
+          {step === 3 && (
+            <StepExams
+              data={userData}
+              updateExams={(v) => setUserData((p) => ({ ...p, exams: v }))}
+              onNext={() => setStep(4)}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
+            <StepBlocked
+              data={userData}
+              updateBlocked={(v) =>
+                setUserData((p) => ({ ...p, blockedTimes: v }))
+              }
+              onNext={() => setStep(5)}
+              onBack={() => setStep(3)}
+            />
+          )}
+          {step === 5 && (
+            <StepSchoolSchedule
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={generateSchedule}
+              onBack={() => setStep(4)}
+              isLast={true}
+              nextLabel={loading ? "Generating..." : "Generate Plan"}
+            />
+          )}
 
-            <StatsPanel generatedPlan={generatedPlan} userData={userData} />
+          {step === 6 && (
+            <div className="animate-fade-in">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-3 md:gap-0">
+                <div className="w-full">
+                  <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-1 md:mb-2">
+                    Plan{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">
+                      Generated
+                    </span>{" "}
+                    Successfully!
+                  </h1>
+                  <p className="text-base md:text-xl text-slate-500">
+                    Here is your intelligent study schedule, {userData.name}.
+                  </p>
+                </div>
+                <div className="flex gap-2 w-full md:w-auto justify-end">
+                  <button
+                    onClick={handleShare}
+                    className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg flex items-center gap-1 md:gap-2 text-sm md:text-base"
+                  >
+                    <Share2 size={16} className="md:w-5 md:h-5" /> Share
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg flex items-center gap-1 md:gap-2 text-sm md:text-base"
+                  >
+                    <Printer size={16} className="md:w-5 md:h-5" /> Print
+                  </button>
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mt-6 md:mt-8">
-              <CalendarView
-                viewDate={viewDate}
-                setViewDate={setViewDate}
-                selectedDay={selectedDay}
-                setSelectedDay={setSelectedDay}
+              <RealTimeStatus
                 generatedPlan={generatedPlan}
-                userData={userData}
+                userName={userData.name}
+                onStartStudy={() => setStudyModeOpen(true)}
+                stats={stats}
               />
-              <DailyPlanView day={selectedDay} sessions={todaysSessions} />
-            </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 mt-6 md:mt-8">
-              <button
-                onClick={() => setStep(1)}
-                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-200 text-rose-600 font-bold rounded-lg md:rounded-xl hover:shadow-lg transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
-              >
-                <RotateCcw size={16} className="md:w-5 md:h-5" /> Restart
-                Planning
-              </button>
-              <button
-                onClick={generateICalendar}
-                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-600 font-bold rounded-lg md:rounded-xl hover:shadow-lg transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
-              >
-                <Download size={16} className="md:w-5 md:h-5" /> Export to
-                Calendar
-              </button>
-              <button
-                onClick={() => setStudyModeOpen(true)}
-                className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg shadow-blue-500/30 transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
-              >
-                <Play size={16} className="md:w-5 md:h-5" /> Start Focus Session
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
+              <StatsPanel generatedPlan={generatedPlan} userData={userData} />
 
-      <footer className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 text-center text-slate-500 text-xs md:text-sm">
-        <p>StudyAI Ultimate Pro Edition • Intelligent Study Planning System</p>
-        <p className="mt-1 md:mt-2">Designed with ❤️ for students worldwide</p>
-      </footer>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mt-6 md:mt-8">
+                <CalendarView
+                  viewDate={viewDate}
+                  setViewDate={setViewDate}
+                  selectedDay={selectedDay}
+                  setSelectedDay={setSelectedDay}
+                  generatedPlan={generatedPlan}
+                  userData={userData}
+                />
+                <DailyPlanView day={selectedDay} sessions={todaysSessions} />
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 mt-6 md:mt-8">
+                <button
+                  onClick={() => setStep(1)}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-200 text-rose-600 font-bold rounded-lg md:rounded-xl hover:shadow-lg transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
+                >
+                  <RotateCcw size={16} className="md:w-5 md:h-5" /> Restart
+                  Planning
+                </button>
+                <button
+                  onClick={generateICalendar}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-600 font-bold rounded-lg md:rounded-xl hover:shadow-lg transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
+                >
+                  <Download size={16} className="md:w-5 md:h-5" /> Export to
+                  Calendar
+                </button>
+                <button
+                  onClick={() => setStudyModeOpen(true)}
+                  className="px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg md:rounded-xl hover:shadow-lg shadow-blue-500/30 transition flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base"
+                >
+                  <Play size={16} className="md:w-5 md:h-5" /> Start Focus
+                  Session
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <footer className="w-full max-w-7xl mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 text-center text-slate-500 text-xs md:text-sm px-3 sm:px-4 md:px-6">
+          <p>
+            StudyAI Ultimate Pro Edition • Intelligent Study Planning System
+          </p>
+          <p className="mt-1 md:mt-2">
+            Designed with ❤️ for students worldwide
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }
