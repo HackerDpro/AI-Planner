@@ -50,7 +50,7 @@ import {
 } from "lucide-react";
 
 // ==============================================================================
-// AI STUDY ARCHITECT - ULTIMATE PRO EDITION - FIXED VERSION
+// AI STUDY ARCHITECT - ULTIMATE PRO EDITION - FIXED & WORKING VERSION
 // ==============================================================================
 
 // --- 1. UTILITY FUNCTIONS ---
@@ -58,7 +58,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
-  const date = new Date(dateStr);
+  const date = new Date(dateStr + 'T00:00:00'); // Add time to avoid timezone issues
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -82,9 +82,15 @@ const formatTimer = (seconds) => {
 };
 
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
-// Fixed: Motivational quotes now change every 30 seconds instead of every second
+// FIXED: Get first day of month with Monday as first day (0=Monday, 6=Sunday)
+const getFirstDayOfMonth = (year, month) => {
+  const day = new Date(year, month, 1).getDay();
+  // Convert Sunday=0, Monday=1, ... to Monday=0, Tuesday=1, ..., Sunday=6
+  return day === 0 ? 6 : day - 1;
+};
+
+// Fixed motivational quotes - don't change too frequently
 const MOTIVATIONAL_QUOTES = [
   "Stay focused and achieve your goals!",
   "Consistency is key to success.",
@@ -97,12 +103,6 @@ const MOTIVATIONAL_QUOTES = [
   "You're building a brighter future.",
   "Challenges are opportunities for growth.",
 ];
-
-let currentMotivationIndex = 0;
-
-const getCurrentMotivation = () => {
-  return MOTIVATIONAL_QUOTES[currentMotivationIndex];
-};
 
 // --- 2. SUB-COMPONENTS ---
 const Modal = ({ isOpen, onClose, title, children, theme = "cyan" }) => {
@@ -147,7 +147,9 @@ const Modal = ({ isOpen, onClose, title, children, theme = "cyan" }) => {
 // FIXED: Real-Time Status with stable motivation
 const RealTimeStatus = ({ generatedPlan, userName, onStartStudy, stats }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [motivation, setMotivation] = useState(getCurrentMotivation());
+  const [motivation, setMotivation] = useState(
+    MOTIVATIONAL_QUOTES[0]
+  );
 
   useEffect(() => {
     const updateTime = () => {
@@ -158,9 +160,8 @@ const RealTimeStatus = ({ generatedPlan, userName, onStartStudy, stats }) => {
 
     // Change motivation every 30 seconds instead of every second
     const motivationInterval = setInterval(() => {
-      currentMotivationIndex =
-        (currentMotivationIndex + 1) % MOTIVATIONAL_QUOTES.length;
-      setMotivation(getCurrentMotivation());
+      const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+      setMotivation(MOTIVATIONAL_QUOTES[randomIndex]);
     }, 30000);
 
     return () => {
@@ -169,11 +170,11 @@ const RealTimeStatus = ({ generatedPlan, userName, onStartStudy, stats }) => {
     };
   }, []);
 
-  // Get correct date string (fixes the "off by one day" bug)
+  // FIXED: Get correct date string without timezone issues
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
@@ -317,8 +318,8 @@ const StudyNowMode = ({ plan, onClose, userName }) => {
 
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
@@ -415,18 +416,14 @@ const StudyNowMode = ({ plan, onClose, userName }) => {
         {currentSession ? (
           <>
             <div className="mb-8 inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-cyan-300 font-bold tracking-wider text-sm border border-white/10">
-              <Brain size={14} /> FOCUS MODE • Streak: {sessionData.focusStreak}{" "}
-              days
+              <Brain size={14} /> FOCUS MODE • Streak:{" "}
+              {sessionData.focusStreak} days
             </div>
             <h2 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 via-white to-purple-200 break-words">
               {currentSession.subject}
             </h2>
             <p className="text-xl text-cyan-100/80 mb-12 max-w-lg mx-auto leading-relaxed px-2">
-              {
-                MOTIVATIONAL_QUOTES[
-                  Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)
-                ]
-              }
+              {MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]}
             </p>
 
             <div className="relative w-64 h-64 mx-auto mb-12 flex items-center justify-center group">
@@ -478,8 +475,13 @@ const StudyNowMode = ({ plan, onClose, userName }) => {
           </>
         ) : (
           <div className="text-center px-4">
-            <Coffee size={48} className="mx-auto mb-6 text-cyan-400" />
-            <h2 className="text-4xl font-bold mb-4">You're Free!</h2>
+            <Coffee
+              size={48}
+              className="mx-auto mb-6 text-cyan-400"
+            />
+            <h2 className="text-4xl font-bold mb-4">
+              You're Free!
+            </h2>
             <p className="text-xl text-slate-300">
               No study sessions scheduled for right now.
             </p>
@@ -493,7 +495,7 @@ const StudyNowMode = ({ plan, onClose, userName }) => {
   );
 };
 
-// FIXED: Question Card with consistent layout
+// Question Card Component
 const QuestionCard = ({
   children,
   title,
@@ -534,7 +536,8 @@ const QuestionCard = ({
             : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-cyan-500/30"
         }`}
       >
-        {isLast ? "Generate Plan" : nextLabel} <ChevronRight size={20} />
+        {isLast ? "Generate Plan" : nextLabel}{" "}
+        <ChevronRight size={20} />
       </button>
     </div>
   </div>
@@ -558,7 +561,11 @@ const SelectionCard = ({
   >
     {selected && (
       <div className="absolute top-4 right-4 text-cyan-600">
-        <CheckCircle size={20} fill="currentColor" className="text-white" />
+        <CheckCircle
+          size={20}
+          fill="currentColor"
+          className="text-white"
+        />
       </div>
     )}
     <div
@@ -568,7 +575,10 @@ const SelectionCard = ({
           : "bg-slate-50"
       }`}
     >
-      <Icon className={selected ? "text-white" : colorClass} size={28} />
+      <Icon
+        className={selected ? "text-white" : colorClass}
+        size={28}
+      />
     </div>
     <h3
       className={`font-bold text-xl mb-2 ${
@@ -577,7 +587,9 @@ const SelectionCard = ({
     >
       {title}
     </h3>
-    <p className="text-sm text-slate-500 leading-relaxed font-medium">{desc}</p>
+    <p className="text-sm text-slate-500 leading-relaxed font-medium">
+      {desc}
+    </p>
   </button>
 );
 
@@ -657,7 +669,9 @@ const StepBasics = ({ data, onChange, onNext, onBack }) => {
               <div className="bg-white p-2 rounded-lg shadow-sm">
                 <Sliders size={20} className="text-blue-600" />
               </div>
-              <h3 className="font-bold text-lg">Max Daily Study</h3>
+              <h3 className="font-bold text-lg">
+                Max Daily Study
+              </h3>
             </div>
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-full font-bold text-lg shadow-md">
               {data.maxStudyHours}h
@@ -681,7 +695,8 @@ const StepBasics = ({ data, onChange, onNext, onBack }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-5 bg-white rounded-2xl border-2 border-slate-100 hover:border-cyan-200 transition">
             <div className="flex items-center gap-3 mb-3 text-cyan-700">
-              <Sun size={20} /> <h3 className="font-bold text-lg">Start Day</h3>
+              <Sun size={20} />{" "}
+              <h3 className="font-bold text-lg">Start Day</h3>
             </div>
             <input
               type="time"
@@ -692,7 +707,8 @@ const StepBasics = ({ data, onChange, onNext, onBack }) => {
           </div>
           <div className="p-5 bg-white rounded-2xl border-2 border-slate-100 hover:border-indigo-200 transition">
             <div className="flex items-center gap-3 mb-3 text-indigo-700">
-              <Moon size={20} /> <h3 className="font-bold text-lg">End Day</h3>
+              <Moon size={20} />{" "}
+              <h3 className="font-bold text-lg">End Day</h3>
             </div>
             <input
               type="time"
@@ -701,6 +717,453 @@ const StepBasics = ({ data, onChange, onNext, onBack }) => {
               onChange={(e) => onChange("dailyEnd", e.target.value)}
             />
           </div>
+        </div>
+      </div>
+    </QuestionCard>
+  );
+};
+
+const StepChronotype = ({ data, onChange, onNext, onBack }) => (
+  <QuestionCard
+    title="2. Energy Profile"
+    description="We schedule hard topics when you are most awake."
+    onNext={onNext}
+    onBack={onBack}
+  >
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+      {[
+        {
+          id: "morning",
+          title: "Early Bird",
+          desc: "Peak focus: 8AM - 12PM",
+          icon: Sun,
+          color: "text-amber-500",
+        },
+        {
+          id: "afternoon",
+          title: "Daytime",
+          desc: "Peak focus: 11AM - 5PM",
+          icon: Activity,
+          color: "text-orange-500",
+        },
+        {
+          id: "night",
+          title: "Night Owl",
+          desc: "Peak focus: 6PM - 12AM",
+          icon: Moon,
+          color: "text-indigo-600",
+        },
+      ].map((opt) => (
+        <SelectionCard
+          key={opt.id}
+          {...opt}
+          selected={data.chronotype === opt.id}
+          onClick={() => onChange("chronotype", opt.id)}
+          colorClass={opt.color}
+        />
+      ))}
+    </div>
+  </QuestionCard>
+);
+
+const StepExams = ({ data, updateExams, onNext, onBack }) => {
+  const addExam = () =>
+    updateExams([
+      ...data.exams,
+      { id: generateId(), subject: "", date: "", difficulty: 5, priority: 1 },
+    ]);
+  const removeExam = (id) => updateExams(data.exams.filter((e) => e.id !== id));
+  const updateExamField = (index, field, value) => {
+    const newExams = [...data.exams];
+    newExams[index][field] = value;
+    updateExams(newExams);
+  };
+
+  return (
+    <QuestionCard
+      title="3. The Mission"
+      description="Add your exams. We prioritize them based on date and difficulty."
+      onNext={onNext}
+      onBack={onBack}
+    >
+      <div className="space-y-4">
+        {data.exams.map((exam, index) => (
+          <div
+            key={exam.id}
+            className="bg-gradient-to-r from-slate-50 to-white p-6 rounded-3xl border-2 border-slate-200 relative shadow-sm hover:shadow-md hover:border-cyan-300 transition-all group"
+          >
+            <button
+              onClick={() => removeExam(exam.id)}
+              className="absolute top-4 right-4 bg-white text-slate-300 hover:text-rose-500 p-2 rounded-full shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 size={16} />
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6 items-end">
+              <div className="md:col-span-5">
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1 block tracking-wider">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Economy"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-cyan-500 outline-none text-base"
+                  value={exam.subject}
+                  onChange={(e) =>
+                    updateExamField(index, "subject", e.target.value)
+                  }
+                />
+              </div>
+              <div className="md:col-span-4">
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1 block tracking-wider">
+                  Exam Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:border-cyan-500 outline-none text-base"
+                  value={exam.date}
+                  onChange={(e) =>
+                    updateExamField(index, "date", e.target.value)
+                  }
+                />
+              </div>
+              <div className="md:col-span-3">
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1 block tracking-wider">
+                  Priority
+                </label>
+                <select
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none text-base"
+                  value={exam.priority}
+                  onChange={(e) =>
+                    updateExamField(index, "priority", e.target.value)
+                  }
+                >
+                  <option value="1">Normal</option>
+                  <option value="1.5">Important</option>
+                  <option value="2">High</option>
+                  <option value="3">Critical</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                Difficulty
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                className="flex-grow h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                style={{accentColor: '#f43f5e'}}
+                value={exam.difficulty}
+                onChange={(e) =>
+                  updateExamField(index, "difficulty", e.target.value)
+                }
+              />
+              <span className="font-bold bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent w-8 text-right text-base">
+                {exam.difficulty}
+              </span>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={addExam}
+          className="w-full py-6 border-2 border-dashed border-slate-300 text-slate-500 rounded-3xl hover:bg-cyan-50 hover:border-cyan-400 hover:text-cyan-600 font-bold flex items-center justify-center gap-2 transition-all group text-base"
+        >
+          <div className="bg-slate-200 group-hover:bg-cyan-200 p-2 rounded-full text-blue-700 group-hover:text-cyan-700 transition-colors">
+            <Plus size={20} />
+          </div>{" "}
+          Add Exam
+        </button>
+      </div>
+    </QuestionCard>
+  );
+};
+
+const StepBlocked = ({ data, updateBlocked, onNext, onBack }) => {
+  const [newBlock, setNewBlock] = useState({
+    day: "Everyday",
+    start: "",
+    end: "",
+    name: "",
+  });
+
+  const addBlock = () => {
+    if (newBlock.start && newBlock.end && newBlock.name) {
+      updateBlocked([...data.blockedTimes, { ...newBlock, type: "recurring" }]);
+      setNewBlock({ ...newBlock, name: "", start: "", end: "" });
+    }
+  };
+
+  return (
+    <QuestionCard
+      title="4. Life Constraints"
+      description="When are you busy? We will never schedule study during these times."
+      onNext={onNext}
+      onBack={onBack}
+    >
+      <div className="bg-gradient-to-r from-indigo-50/50 to-blue-50/50 p-6 rounded-3xl border border-indigo-100 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <select
+            className="p-4 bg-white border border-indigo-100 rounded-xl font-bold text-slate-700 outline-none text-base"
+            value={newBlock.day}
+            onChange={(e) => setNewBlock({ ...newBlock, day: e.target.value })}
+          >
+            {[
+              "Everyday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday",
+            ].map((d) => (
+              <option key={d}>{d}</option>
+            ))}
+          </select>
+          <div className="md:col-span-2">
+            <input
+              type="text"
+              placeholder="Activity (e.g. Soccer Training)"
+              className="w-full p-4 bg-white border border-indigo-100 rounded-xl font-bold text-slate-700 outline-none text-base"
+              value={newBlock.name}
+              onChange={(e) =>
+                setNewBlock({ ...newBlock, name: e.target.value })
+              }
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-4 mb-4 bg-white p-3 rounded-xl border border-indigo-100">
+          <Clock
+            className="text-indigo-400 ml-2"
+            size={16}
+          />
+          <input
+            type="time"
+            className="bg-transparent font-bold text-slate-700 outline-none text-base flex-1"
+            value={newBlock.start}
+            onChange={(e) =>
+              setNewBlock({ ...newBlock, start: e.target.value })
+            }
+          />
+          <span className="text-slate-300">to</span>
+          <input
+            type="time"
+            className="bg-transparent font-bold text-slate-700 outline-none text-base flex-1"
+            value={newBlock.end}
+            onChange={(e) => setNewBlock({ ...newBlock, end: e.target.value })}
+          />
+        </div>
+        <button
+          onClick={addBlock}
+          className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold rounded-xl hover:shadow-lg shadow-indigo-200 flex justify-center items-center gap-2 text-base"
+        >
+          <Plus size={16} /> Add Constraint
+        </button>
+      </div>
+      <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+        {data.blockedTimes.map((block, index) => (
+          <div
+            key={index}
+            className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"
+          >
+            <div className="w-1.5 h-12 rounded-full bg-gradient-to-b from-indigo-400 to-blue-400"></div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                <span className="font-bold text-slate-800 text-base truncate">
+                  {block.day}
+                </span>
+                <span className="text-xs font-bold uppercase bg-indigo-50 text-indigo-600 px-2 py-1 rounded w-fit">
+                  Recurring
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:justify-between text-sm text-slate-500 mt-1 gap-1">
+                <span className="truncate">{block.name}</span>
+                <span className="font-mono">
+                  {formatTime(block.start)} - {formatTime(block.end)}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() =>
+                updateBlocked(data.blockedTimes.filter((_, i) => i !== index))
+              }
+              className="text-slate-300 hover:text-rose-500 p-2 flex-shrink-0"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </QuestionCard>
+  );
+};
+
+const StepSchoolSchedule = ({ data, onChange, onNext, onBack }) => {
+  const defaultSchedule = {
+    startDate: "",
+    endDate: "",
+    weeklySchedule: {
+      Monday: { start: "08:00", end: "15:00", hasSchool: true },
+      Tuesday: { start: "08:00", end: "15:00", hasSchool: true },
+      Wednesday: { start: "08:00", end: "15:00", hasSchool: true },
+      Thursday: { start: "08:00", end: "15:00", hasSchool: true },
+      Friday: { start: "08:00", end: "15:00", hasSchool: true },
+      Saturday: { start: "09:00", end: "13:00", hasSchool: false },
+      Sunday: { start: "09:00", end: "13:00", hasSchool: false },
+    },
+  };
+
+  const schoolSchedule = data.schoolSchedule || defaultSchedule;
+
+  const updateSchoolSchedule = (day, field, value) => {
+    const newSchedule = { ...schoolSchedule.weeklySchedule };
+
+    if (field === "hasSchool") {
+      newSchedule[day].hasSchool = value;
+      if (!value) {
+        newSchedule[day].start = "";
+        newSchedule[day].end = "";
+      } else {
+        newSchedule[day].start = newSchedule[day].start || "08:00";
+        newSchedule[day].end = newSchedule[day].end || "15:00";
+      }
+    } else {
+      newSchedule[day][field] = value;
+    }
+
+    onChange("schoolSchedule", {
+      ...schoolSchedule,
+      weeklySchedule: newSchedule,
+    });
+  };
+
+  const updateDate = (field, value) => {
+    onChange("schoolSchedule", {
+      ...schoolSchedule,
+      [field]: value,
+    });
+  };
+
+  const daysOfWeek = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
+  return (
+    <QuestionCard
+      title="5. School Schedule"
+      description="When do you have school? We'll schedule study sessions around your classes."
+      onNext={onNext}
+      onBack={onBack}
+      isLast={true}
+    >
+      <div className="space-y-8">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-3xl border-2 border-blue-100">
+          <h3 className="font-bold text-lg text-blue-800 mb-4 flex items-center gap-2">
+            <CalendarIcon size={18} /> School Term Dates (Optional)
+          </h3>
+          <p className="text-sm text-blue-600/70 mb-4">
+            If your school has specific start/end dates (like semester breaks),
+            add them here.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-blue-700 mb-2">
+                School Starts
+              </label>
+              <input
+                type="date"
+                className="w-full p-3 bg-white border border-blue-200 rounded-xl font-medium text-base"
+                value={schoolSchedule?.startDate || ""}
+                onChange={(e) => updateDate("startDate", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-blue-700 mb-2">
+                School Ends
+              </label>
+              <input
+                type="date"
+                className="w-full p-3 bg-white border border-blue-200 rounded-xl font-medium text-base"
+                value={schoolSchedule?.endDate || ""}
+                onChange={(e) => updateDate("endDate", e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+            <School size={18} /> Weekly School Hours
+          </h3>
+          <div className="space-y-3">
+            {daysOfWeek.map((day) => {
+              const daySchedule = schoolSchedule?.weeklySchedule?.[day] || { start: "", end: "", hasSchool: false };
+              return (
+                <div
+                  key={day}
+                  className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-blue-200 transition"
+                >
+                  <div className="w-8">
+                    <input
+                      type="checkbox"
+                      id={`school-${day}`}
+                      checked={daySchedule.hasSchool || false}
+                      onChange={(e) =>
+                        updateSchoolSchedule(day, "hasSchool", e.target.checked)
+                      }
+                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label
+                      htmlFor={`school-${day}`}
+                      className="font-bold text-slate-800 text-base truncate"
+                    >
+                      {day}
+                    </label>
+                  </div>
+                  {daySchedule.hasSchool ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <input
+                        type="time"
+                        value={daySchedule.start || ""}
+                        onChange={(e) =>
+                          updateSchoolSchedule(day, "start", e.target.value)
+                        }
+                        className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm w-24"
+                      />
+                      <span className="text-slate-400 text-sm">
+                        to
+                      </span>
+                      <input
+                        type="time"
+                        value={daySchedule.end || ""}
+                        onChange={(e) =>
+                          updateSchoolSchedule(day, "end", e.target.value)
+                        }
+                        className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm w-24"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 text-sm font-medium">
+                      No school
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-sm text-slate-500 mt-4">
+            💡 The AI will avoid scheduling study sessions during school hours.
+            On days without school, more study time will be available.
+          </p>
         </div>
       </div>
     </QuestionCard>
@@ -719,25 +1182,18 @@ const CalendarView = ({
   const currentMonth = viewDate.getMonth();
   const currentYear = viewDate.getFullYear();
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-
-  // Fix: Get first day of month with Monday as 0, Sunday as 6
-  const getFirstDayOfMonthFixed = (year, month) => {
-    const day = new Date(year, month, 1).getDay();
-    // Convert Sunday=0, Monday=1, ... to Monday=0, Tuesday=1, ..., Sunday=6
-    return day === 0 ? 6 : day - 1;
-  };
-
-  const firstDay = getFirstDayOfMonthFixed(currentYear, currentMonth);
+  const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
 
   const monthName = viewDate.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
 
+  // FIXED: Get correct date string
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
@@ -759,11 +1215,9 @@ const CalendarView = ({
 
   const calendarDays = useMemo(() => {
     const days = [];
-    // Add empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
       days.push({ date: null, isCurrentMonth: false });
     }
-    // Add days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       const date = getLocalDateString(new Date(currentYear, currentMonth, i));
       const isToday = date === today;
@@ -851,7 +1305,9 @@ const CalendarView = ({
   return (
     <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-        <h3 className="text-2xl font-bold text-slate-800">{monthName}</h3>
+        <h3 className="text-2xl font-bold text-slate-800">
+          {monthName}
+        </h3>
         <div className="flex gap-2 self-end sm:self-auto">
           <button
             onClick={prevMonth}
@@ -908,7 +1364,10 @@ const DailyPlanView = ({ day, sessions, checkedItems, onToggleCheck }) => {
     return (
       <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 min-h-[300px] flex items-center justify-center">
         <div className="text-center text-slate-500">
-          <CalendarIcon size={32} className="mx-auto mb-3 text-slate-300" />
+          <CalendarIcon
+            size={32}
+            className="mx-auto mb-3 text-slate-300"
+          />
           <p className="font-medium text-base">
             Select a date on the calendar to view its plan.
           </p>
@@ -923,7 +1382,10 @@ const DailyPlanView = ({ day, sessions, checkedItems, onToggleCheck }) => {
       </h3>
       {sessions.length === 0 ? (
         <div className="text-center py-10 text-slate-500">
-          <CheckCircle size={32} className="mx-auto mb-3 text-green-500" />
+          <CheckCircle
+            size={32}
+            className="mx-auto mb-3 text-green-500"
+          />
           <p className="font-medium text-base">
             No scheduled activities on this day. Free time!
           </p>
@@ -957,9 +1419,15 @@ const DailyPlanView = ({ day, sessions, checkedItems, onToggleCheck }) => {
                     {s.type === "exam" ? (
                       <Flame size={18} className="text-rose-600" />
                     ) : s.type === "rest" ? (
-                      <Coffee size={18} className="text-green-600" />
+                      <Coffee
+                        size={18}
+                        className="text-green-600"
+                      />
                     ) : (
-                      <BookOpen size={18} className="text-cyan-600" />
+                      <BookOpen
+                        size={18}
+                        className="text-cyan-600"
+                      />
                     )}
                     <h4 className="font-bold text-lg text-slate-800 truncate">
                       {s.subject}
@@ -981,212 +1449,109 @@ const DailyPlanView = ({ day, sessions, checkedItems, onToggleCheck }) => {
   );
 };
 
-// FIXED: Print function
-const handlePrint = (generatedPlan, userData, stats, checkedItems) => {
-  const printWindow = window.open("", "_blank");
+const StatsPanel = ({ generatedPlan, userData }) => {
+  const stats = useMemo(() => {
+    if (!generatedPlan) return null;
 
-  const completedSessions = generatedPlan
-    ? generatedPlan.filter((s) => checkedItems[s.id]).length
-    : 0;
-  const totalSessions = generatedPlan ? generatedPlan.length : 0;
-  const completionRate =
-    totalSessions > 0
-      ? Math.round((completedSessions / totalSessions) * 100)
-      : 0;
+    const studySessions = generatedPlan.filter((s) => s.type === "study");
+    const examDays = generatedPlan.filter((s) => s.type === "exam");
+    const restSessions = generatedPlan.filter((s) => s.type === "rest");
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>StudyAI Ultimate - Study Plan</title>
-      <style>
-        @media print {
-          @page {
-            size: A4;
-            margin: 0.5in;
-          }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #1e293b;
-            max-width: 100%;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #0ea5e9;
-          }
-          .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
-          }
-          .stat-card {
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          }
-          .plan-day {
-            break-inside: avoid;
-            margin-bottom: 25px;
-            padding: 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-          }
-          .session {
-            margin: 10px 0;
-            padding: 10px;
-            border-left: 4px solid #0ea5e9;
-            background: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-          }
-          .completed { opacity: 0.7; }
-          .checkbox { color: #10b981; }
-          .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #0ea5e9;
-            text-align: center;
-            font-size: 12px;
-            color: #64748b;
-          }
-          h1 { color: #0ea5e9; margin: 0; }
-          h2 { color: #475569; margin: 20px 0 10px; }
-          .page-break { page-break-before: always; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>📚 StudyAI Ultimate - Study Plan</h1>
-        <p><strong>Student:</strong> ${
-          userData.name || "Not specified"
-        } | <strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-      </div>
-      
-      <div class="stats-grid">
-        <div class="stat-card" style="background: #f0f9ff;">
-          <h3>Total Study Hours</h3>
-          <p style="font-size: 24px; font-weight: bold; color: #0369a1;">${
-            stats?.totalHours || "0"
-          }h</p>
-        </div>
-        <div class="stat-card" style="background: #f0fdf4;">
-          <h3>Active Study Days</h3>
-          <p style="font-size: 24px; font-weight: bold; color: #047857;">${
-            stats?.daysWithStudy || "0"
-          }</p>
-        </div>
-        <div class="stat-card" style="background: #fef2f2;">
-          <h3>Completion Rate</h3>
-          <p style="font-size: 24px; font-weight: bold; color: #dc2626;">${completionRate}%</p>
-        </div>
-      </div>
-      
-      <div class="page-break"></div>
-      
-      <h2>📅 Study Plan with Checklist</h2>
-  `);
+    const totalStudyMinutes = studySessions.reduce(
+      (sum, s) => sum + s.duration,
+      0
+    );
+    const totalStudyHours = (totalStudyMinutes / 60).toFixed(1);
 
-  if (generatedPlan) {
-    const sessionsByDate = {};
-    generatedPlan.forEach((session) => {
-      if (!sessionsByDate[session.date]) {
-        sessionsByDate[session.date] = [];
-      }
-      sessionsByDate[session.date].push(session);
+    const daysWithStudy = [...new Set(studySessions.map((s) => s.date))].length;
+    const daysWithExams = examDays.length;
+
+    const subjects = {};
+    studySessions.forEach((s) => {
+      subjects[s.subject] = (subjects[s.subject] || 0) + s.duration;
     });
 
-    Object.entries(sessionsByDate).forEach(([date, sessions]) => {
-      printWindow.document.write(`
-        <div class="plan-day">
-          <h3>${formatDate(date)}</h3>
-      `);
+    const mostStudiedSubject = Object.entries(subjects).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
 
-      sessions.forEach((session) => {
-        const isCompleted = checkedItems[session.id];
-        printWindow.document.write(`
-          <div class="session ${isCompleted ? "completed" : ""}">
-            <span class="checkbox">${isCompleted ? "✅" : "☐"}</span>
-            <div>
-              <strong>${
-                session.type === "exam"
-                  ? "🎯 EXAM: "
-                  : session.type === "rest"
-                  ? "☕ BREAK: "
-                  : "📚 STUDY: "
-              }${session.subject}</strong><br>
-              <small>${formatTime(session.startTime)} - ${formatTime(
-          session.endTime
-        )}</small>
-              ${
-                session.description
-                  ? `<br><small>${session.description}</small>`
-                  : ""
-              }
-            </div>
+    return {
+      totalStudyHours,
+      daysWithStudy,
+      daysWithExams,
+      totalSessions: studySessions.length,
+      mostStudiedSubject: mostStudiedSubject
+        ? `${mostStudiedSubject[0]} (${(mostStudiedSubject[1] / 60).toFixed(
+            1
+          )}h)`
+        : "None",
+      efficiencyScore: Math.min(
+        100,
+        Math.round(
+          (daysWithStudy / Math.max(1, examDays.length)) * 50 +
+            (totalStudyMinutes / (userData.maxStudyHours * 60)) * 50
+        )
+      ),
+    };
+  }, [generatedPlan, userData]);
+
+  if (!stats) return null;
+
+  return (
+    <div className="bg-gradient-to-r from-white to-blue-50 p-6 rounded-3xl shadow-xl border border-blue-100">
+      <h3 className="text-2xl font-bold text-slate-800 mb-6 border-b border-blue-100 pb-3 flex items-center gap-2">
+        <TrendingUp size={20} /> Study Analytics
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-2xl border border-blue-100">
+          <div className="text-2xl font-bold text-blue-700">
+            {stats.totalStudyHours}h
           </div>
-        `);
-      });
-
-      printWindow.document.write(`</div>`);
-    });
-  }
-
-  printWindow.document.write(`
-      <div class="footer">
-        <p>Made with StudyAI Ultimate: https://studyai-ultimate.netlify.app</p>
-        <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <div className="text-sm text-slate-500">
+            Total Study Time
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-green-100">
+          <div className="text-2xl font-bold text-green-700">
+            {stats.daysWithStudy}
+          </div>
+          <div className="text-sm text-slate-500">
+            Active Study Days
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-rose-100">
+          <div className="text-2xl font-bold text-rose-700">
+            {stats.daysWithExams}
+          </div>
+          <div className="text-sm text-slate-500">Exam Days</div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-purple-100">
+          <div className="text-2xl font-bold text-purple-700">
+            {stats.totalSessions}
+          </div>
+          <div className="text-sm text-slate-500">
+            Study Sessions
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-amber-100">
+          <div className="text-lg font-bold text-amber-700 truncate">
+            {stats.mostStudiedSubject}
+          </div>
+          <div className="text-sm text-slate-500">
+            Most Studied Subject
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-cyan-100">
+          <div className="text-2xl font-bold text-cyan-700">
+            {stats.efficiencyScore}%
+          </div>
+          <div className="text-sm text-slate-500">
+            Efficiency Score
+          </div>
+        </div>
       </div>
-    </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 250);
-};
-
-// FIXED: Share function
-const handleShare = (generatedPlan, userData, stats, checkedItems) => {
-  const completedSessions = generatedPlan
-    ? generatedPlan.filter((s) => checkedItems[s.id]).length
-    : 0;
-  const totalSessions = generatedPlan ? generatedPlan.length : 0;
-  const completionRate =
-    totalSessions > 0
-      ? Math.round((completedSessions / totalSessions) * 100)
-      : 0;
-
-  const shareText = `📚 My Study Plan with StudyAI Ultimate 📚
-
-👤 Student: ${userData.name || "Not specified"}
-⏱️ Total Study Hours: ${stats?.totalHours || "0"}h
-📅 Active Study Days: ${stats?.daysWithStudy || "0"}
-✅ Completion Rate: ${completionRate}%
-📆 Generated: ${new Date().toLocaleDateString()}
-
-Made with StudyAI Ultimate: https://studyai-ultimate.netlify.app
-
-#StudyAI #StudyPlan #Productivity`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: "My StudyAI Plan",
-      text: shareText,
-      url: window.location.href,
-    });
-  } else {
-    navigator.clipboard.writeText(shareText);
-    alert("Study plan copied to clipboard! 📋");
-  }
+    </div>
+  );
 };
 
 // --- 4. MAIN APP ---
@@ -1198,34 +1563,608 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState(() => {
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
   const [studyModeOpen, setStudyModeOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [checkedItems, setCheckedItems] = useState({});
 
+  const defaultSchoolSchedule = {
+    startDate: "",
+    endDate: "",
+    weeklySchedule: {
+      Monday: { start: "08:00", end: "15:00", hasSchool: true },
+      Tuesday: { start: "08:00", end: "15:00", hasSchool: true },
+      Wednesday: { start: "08:00", end: "15:00", hasSchool: true },
+      Thursday: { start: "08:00", end: "15:00", hasSchool: true },
+      Friday: { start: "08:00", end: "15:00", hasSchool: true },
+      Saturday: { start: "09:00", end: "13:00", hasSchool: false },
+      Sunday: { start: "09:00", end: "13:00", hasSchool: false },
+    },
+  };
+
+  const [userData, setUserData] = useState({
+    name: "",
+    startDate: new Date().toISOString().split("T")[0],
+    dailyStart: "09:00",
+    dailyEnd: "21:00",
+    maxStudyHours: 4,
+    chronotype: "afternoon",
+    exams: [],
+    blockedTimes: [],
+    schoolSchedule: defaultSchoolSchedule,
+  });
+
   const toggleCheck = (sessionId) => {
-    setCheckedItems((prev) => ({
+    setCheckedItems(prev => ({
       ...prev,
-      [sessionId]: !prev[sessionId],
+      [sessionId]: !prev[sessionId]
     }));
   };
 
   useEffect(() => {
-    const savedChecked = localStorage.getItem("studyai_checked_items");
-    if (savedChecked) {
-      setCheckedItems(JSON.parse(savedChecked));
+    const savedData = localStorage.getItem("zenithPlannerData");
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        const normalizedData = {
+          ...userData,
+          ...data,
+          schoolSchedule: data.schoolSchedule || defaultSchoolSchedule,
+        };
+        setUserData(normalizedData);
+        if (data.plan && data.plan.length > 0) {
+          setGeneratedPlan(data.plan);
+          setStep(6);
+        }
+      } catch (e) {
+        console.error("Error loading saved data:", e);
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("studyai_checked_items", JSON.stringify(checkedItems));
-  }, [checkedItems]);
+    const dataToSave = { ...userData, plan: generatedPlan };
+    const timer = setTimeout(() => {
+      localStorage.setItem("zenithPlannerData", JSON.stringify(dataToSave));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [userData, generatedPlan]);
 
-  // [Rest of the component remains the same with minor fixes for date handling]
-  // ... (Previous state and effects remain similar)
+  useEffect(() => {
+    if (generatedPlan) {
+      const studySessions = generatedPlan.filter((s) => s.type === "study");
+      const totalStudyMinutes = studySessions.reduce(
+        (sum, s) => sum + s.duration,
+        0
+      );
+      const daysWithStudy = [...new Set(studySessions.map((s) => s.date))]
+        .length;
+
+      setStats({
+        totalHours: (totalStudyMinutes / 60).toFixed(1),
+        daysWithStudy,
+        totalSessions: studySessions.length,
+      });
+    }
+  }, [generatedPlan]);
+
+  const generateSchedule = useCallback(() => {
+    setLoading(true);
+
+    setTimeout(() => {
+      try {
+        const {
+          exams,
+          dailyStart,
+          dailyEnd,
+          maxStudyHours,
+          blockedTimes,
+          startDate,
+          schoolSchedule,
+        } = userData;
+
+        const sessions = [];
+        const userMaxMinutes = parseFloat(maxStudyHours) * 60;
+
+        const start = new Date(startDate);
+        const lastExamDate =
+          exams.length > 0
+            ? new Date(
+                Math.max(...exams.map((e) => new Date(e.date).getTime()))
+              )
+            : new Date();
+        const end = new Date(lastExamDate);
+        end.setDate(end.getDate() + 1);
+
+        let currentDate = new Date(start);
+        let failSafe = 0;
+
+        let consecutiveSessions = {};
+
+        while (currentDate <= end && failSafe < 365) {
+          failSafe++;
+          const dateStr = currentDate.toISOString().split("T")[0];
+          const dayName = currentDate.toLocaleDateString("en-US", {
+            weekday: "long",
+          });
+
+          exams
+            .filter((e) => e.date === dateStr)
+            .forEach((e) => {
+              sessions.push({
+                id: generateId(),
+                subject: e.subject,
+                date: dateStr,
+                startTime: "00:00",
+                endTime: "23:59",
+                description: `🎯 EXAM DAY: ${e.subject}. You got this!`,
+                type: "exam",
+                duration: 1440,
+              });
+            });
+
+          const daySchedule = schoolSchedule?.weeklySchedule?.[dayName] || {
+            start: "",
+            end: "",
+            hasSchool: false,
+          };
+          let availableStudyWindows = [];
+
+          if (daySchedule.hasSchool && daySchedule.start && daySchedule.end) {
+            if (daySchedule.start > dailyStart) {
+              availableStudyWindows.push({
+                start: dailyStart,
+                end: daySchedule.start,
+              });
+            }
+            if (daySchedule.end < dailyEnd) {
+              availableStudyWindows.push({
+                start: daySchedule.end,
+                end: dailyEnd,
+              });
+            }
+          } else {
+            availableStudyWindows.push({
+              start: dailyStart,
+              end: dailyEnd,
+            });
+          }
+
+          let dailyStudyMinutes = 0;
+          let sessionsSinceLongBreak = 0;
+          consecutiveSessions = {};
+
+          for (const window of availableStudyWindows) {
+            let currentTime = new Date(`${dateStr}T${window.start}`);
+            const windowEnd = new Date(`${dateStr}T${window.end}`);
+
+            while (
+              currentTime < windowEnd &&
+              dailyStudyMinutes < userMaxMinutes
+            ) {
+              const currentMinutes =
+                currentTime.getHours() * 60 + currentTime.getMinutes();
+              let isBlocked = false;
+              let nextAvailableTime = new Date(currentTime);
+
+              for (const block of blockedTimes) {
+                const [sH, sM] = block.start.split(":").map(Number);
+                const [eH, eM] = block.end.split(":").map(Number);
+                const startBlock = sH * 60 + sM;
+                const endBlock = eH * 60 + eM;
+
+                if (
+                  (block.day === "Everyday" || block.day === dayName) &&
+                  currentMinutes >= startBlock &&
+                  currentMinutes < endBlock
+                ) {
+                  isBlocked = true;
+                  nextAvailableTime = new Date(currentTime);
+                  nextAvailableTime.setHours(eH, eM);
+                  break;
+                }
+              }
+
+              if (isBlocked) {
+                currentTime = nextAvailableTime;
+                continue;
+              }
+
+              if (sessionsSinceLongBreak >= 3) {
+                const breakEnd = new Date(currentTime);
+                breakEnd.setMinutes(breakEnd.getMinutes() + 60);
+
+                if (breakEnd >= windowEnd) break;
+
+                sessions.push({
+                  id: generateId(),
+                  subject: "REST",
+                  date: dateStr,
+                  startTime: currentTime.toTimeString().substring(0, 5),
+                  endTime: breakEnd.toTimeString().substring(0, 5),
+                  description:
+                    "Smart Long Break (60 min). Recharge your focus.",
+                  type: "rest",
+                  duration: 60,
+                });
+
+                currentTime = breakEnd;
+                sessionsSinceLongBreak = 0;
+                continue;
+              }
+
+              const activeExams = exams.filter(
+                (e) => new Date(e.date) > currentDate
+              );
+              if (activeExams.length === 0) break;
+
+              let bestExam = null;
+              let highestScore = -1;
+
+              activeExams.forEach((exam) => {
+                const daysUntil = Math.max(
+                  1,
+                  Math.ceil(
+                    (new Date(exam.date) - currentDate) / (1000 * 3600 * 24)
+                  )
+                );
+                let score =
+                  (Math.pow(Number(exam.difficulty), 2) *
+                    Number(exam.priority)) /
+                  (daysUntil + 0.1);
+
+                if ((consecutiveSessions[exam.subject] || 0) >= 2) {
+                  score *= 0.05;
+                } else if ((consecutiveSessions[exam.subject] || 0) === 1) {
+                  score *= 0.5;
+                }
+
+                if (
+                  userData.chronotype === "morning" &&
+                  currentTime.getHours() < 12
+                ) {
+                  score *= 1.3;
+                } else if (
+                  userData.chronotype === "night" &&
+                  currentTime.getHours() >= 18
+                ) {
+                  score *= 1.3;
+                }
+
+                if (score > highestScore) {
+                  highestScore = score;
+                  bestExam = exam;
+                }
+              });
+
+              if (bestExam) {
+                const sessionDuration = 50;
+                const shortBreakDuration = 10;
+                const totalSlotDuration = sessionDuration + shortBreakDuration;
+
+                const sessionEnd = new Date(currentTime);
+                sessionEnd.setMinutes(
+                  sessionEnd.getMinutes() + sessionDuration
+                );
+
+                if (
+                  sessionEnd >= windowEnd ||
+                  dailyStudyMinutes + sessionDuration > userMaxMinutes
+                ) {
+                  break;
+                }
+
+                sessions.push({
+                  id: generateId(),
+                  subject: bestExam.subject,
+                  date: dateStr,
+                  startTime: currentTime.toTimeString().substring(0, 5),
+                  endTime: sessionEnd.toTimeString().substring(0, 5),
+                  description: `Study session for ${bestExam.subject}`,
+                  type: "study",
+                  duration: sessionDuration,
+                });
+
+                dailyStudyMinutes += sessionDuration;
+                sessionsSinceLongBreak++;
+
+                Object.keys(consecutiveSessions).forEach((key) => {
+                  if (key !== bestExam.subject) consecutiveSessions[key] = 0;
+                });
+                consecutiveSessions[bestExam.subject] =
+                  (consecutiveSessions[bestExam.subject] || 0) + 1;
+
+                currentTime.setMinutes(
+                  currentTime.getMinutes() + totalSlotDuration
+                );
+              } else {
+                currentTime.setMinutes(currentTime.getMinutes() + 30);
+              }
+            }
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        setGeneratedPlan(sessions);
+        setLoading(false);
+        setStep(6);
+        setSelectedDay(new Date().toISOString().split("T")[0]);
+      } catch (error) {
+        console.error("Error generating schedule:", error);
+        setLoading(false);
+        alert(
+          "Error generating schedule. Please check your inputs and try again."
+        );
+      }
+    }, 1500);
+  }, [userData]);
+
+  const getTodaysPlan = useCallback(() => {
+    if (!generatedPlan || !selectedDay) return [];
+    let daysSessions = generatedPlan.filter((s) => s.date === selectedDay);
+
+    daysSessions.sort((a, b) => {
+      if (a.type === "exam" && b.type !== "exam") return -1;
+      if (a.type !== "exam" && b.type === "exam") return 1;
+      return a.startTime.localeCompare(b.startTime);
+    });
+    return daysSessions;
+  }, [generatedPlan, selectedDay]);
+
+  const todaysSessions = useMemo(() => getTodaysPlan(), [getTodaysPlan]);
+
+  const generateICalendar = () => {
+    if (!generatedPlan || generatedPlan.length === 0) {
+      alert("No plan to export!");
+      return;
+    }
+
+    let icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//StudyAI Ultimate Planner//NONSGML v1.0//EN",
+    ];
+
+    generatedPlan.forEach((session) => {
+      if (session.type !== "exam") {
+        const startDateTime =
+          session.date.replace(/-/g, "") +
+          "T" +
+          session.startTime.replace(/:/g, "") +
+          "00";
+        const endDateTime =
+          session.date.replace(/-/g, "") +
+          "T" +
+          session.endTime.replace(/:/g, "") +
+          "00";
+
+        const summary =
+          session.type === "study"
+            ? `Study: ${session.subject}`
+            : `BREAK: ${session.subject}`;
+        const description = session.description;
+
+        icsContent.push("BEGIN:VEVENT");
+        icsContent.push(`UID:${session.id}@studyai-ultimate.netlify.app`);
+        icsContent.push(
+          `DTSTAMP:${new Date()
+            .toISOString()
+            .replace(/[-:]/g, "")
+            .substring(0, 15)}Z`
+        );
+        icsContent.push(`DTSTART:${startDateTime}`);
+        icsContent.push(`DTEND:${endDateTime}`);
+        icsContent.push(`SUMMARY:${summary}`);
+        icsContent.push(`DESCRIPTION:${description}`);
+        icsContent.push("END:VEVENT");
+      }
+    });
+
+    icsContent.push("END:VCALENDAR");
+    const finalContent = icsContent.join("\n");
+
+    const blob = new Blob([finalContent], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `StudyAI_Plan_${userData.name || "Study"}_${
+      new Date().toISOString().split("T")[0]
+    }.ics`;
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    
+    const completedSessions = generatedPlan 
+      ? generatedPlan.filter(s => checkedItems[s.id]).length 
+      : 0;
+    const totalSessions = generatedPlan ? generatedPlan.length : 0;
+    const completionRate = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>StudyAI Ultimate - Study Plan</title>
+        <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 0.5in;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              color: #1e293b;
+              max-width: 100%;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #0ea5e9;
+            }
+            .stats-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+            .stat-card {
+              padding: 15px;
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .plan-day {
+              break-inside: avoid;
+              margin-bottom: 25px;
+              padding: 15px;
+              border: 1px solid #e2e8f0;
+              border-radius: 12px;
+            }
+            .session {
+              margin: 10px 0;
+              padding: 10px;
+              border-left: 4px solid #0ea5e9;
+              background: #f8fafc;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .completed { opacity: 0.7; }
+            .checkbox { color: #10b981; }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #0ea5e9;
+              text-align: center;
+              font-size: 12px;
+              color: #64748b;
+            }
+            h1 { color: #0ea5e9; margin: 0; }
+            h2 { color: #475569; margin: 20px 0 10px; }
+            .page-break { page-break-before: always; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📚 StudyAI Ultimate - Study Plan</h1>
+          <p><strong>Student:</strong> ${userData.name || 'Not specified'} | <strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card" style="background: #f0f9ff;">
+            <h3>Total Study Hours</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #0369a1;">${stats?.totalHours || '0'}h</p>
+          </div>
+          <div class="stat-card" style="background: #f0fdf4;">
+            <h3>Active Study Days</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #047857;">${stats?.daysWithStudy || '0'}</p>
+          </div>
+          <div class="stat-card" style="background: #fef2f2;">
+            <h3>Completion Rate</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #dc2626;">${completionRate}%</p>
+          </div>
+        </div>
+        
+        <div class="page-break"></div>
+        
+        <h2>📅 Study Plan with Checklist</h2>
+    `);
+
+    if (generatedPlan) {
+      const sessionsByDate = {};
+      generatedPlan.forEach(session => {
+        if (!sessionsByDate[session.date]) {
+          sessionsByDate[session.date] = [];
+        }
+        sessionsByDate[session.date].push(session);
+      });
+
+      Object.entries(sessionsByDate).forEach(([date, sessions]) => {
+        printWindow.document.write(`
+          <div class="plan-day">
+            <h3>${formatDate(date)}</h3>
+        `);
+        
+        sessions.forEach(session => {
+          const isCompleted = checkedItems[session.id];
+          printWindow.document.write(`
+            <div class="session ${isCompleted ? 'completed' : ''}">
+              <span class="checkbox">${isCompleted ? '✅' : '☐'}</span>
+              <div>
+                <strong>${session.type === 'exam' ? '🎯 EXAM: ' : session.type === 'rest' ? '☕ BREAK: ' : '📚 STUDY: '}${session.subject}</strong><br>
+                <small>${formatTime(session.startTime)} - ${formatTime(session.endTime)}</small>
+                ${session.description ? `<br><small>${session.description}</small>` : ''}
+              </div>
+            </div>
+          `);
+        });
+        
+        printWindow.document.write(`</div>`);
+      });
+    }
+
+    printWindow.document.write(`
+        <div class="footer">
+          <p>Made with StudyAI Ultimate: https://studyai-ultimate.netlify.app</p>
+          <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        </div>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const handleShare = () => {
+    const completedSessions = generatedPlan 
+      ? generatedPlan.filter(s => checkedItems[s.id]).length 
+      : 0;
+    const totalSessions = generatedPlan ? generatedPlan.length : 0;
+    const completionRate = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+
+    const shareText = `📚 My Study Plan with StudyAI Ultimate 📚
+
+👤 Student: ${userData.name || 'Not specified'}
+⏱️ Total Study Hours: ${stats?.totalHours || '0'}h
+📅 Active Study Days: ${stats?.daysWithStudy || '0'}
+✅ Completion Rate: ${completionRate}%
+📆 Generated: ${new Date().toLocaleDateString()}
+
+Made with StudyAI Ultimate: https://studyai-ultimate.netlify.app
+
+#StudyAI #StudyPlan #Productivity`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'My StudyAI Plan',
+        text: shareText,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert('Study plan copied to clipboard! 📋');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50 text-slate-800 font-sans selection:bg-cyan-200 selection:text-cyan-900 pb-20">
@@ -1290,10 +2229,52 @@ export default function App() {
 
       <div className="flex flex-col items-center w-full min-h-screen">
         <main className="w-full max-w-7xl px-6 py-8">
-          {/* [Previous steps remain the same] */}
+          {step === 0 && <IntroStep onStart={() => setStep(1)} />}
+          {step === 1 && (
+            <StepBasics
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={() => setStep(2)}
+              onBack={null}
+            />
+          )}
+          {step === 2 && (
+            <StepChronotype
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
+            />
+          )}
+          {step === 3 && (
+            <StepExams
+              data={userData}
+              updateExams={(v) => setUserData((p) => ({ ...p, exams: v }))}
+              onNext={() => setStep(4)}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
+            <StepBlocked
+              data={userData}
+              updateBlocked={(v) =>
+                setUserData((p) => ({ ...p, blockedTimes: v }))
+              }
+              onNext={() => setStep(5)}
+              onBack={() => setStep(3)}
+            />
+          )}
+          {step === 5 && (
+            <StepSchoolSchedule
+              data={userData}
+              onChange={(f, v) => setUserData((p) => ({ ...p, [f]: v }))}
+              onNext={generateSchedule}
+              onBack={() => setStep(4)}
+            />
+          )}
 
           {step === 6 && (
-            <div className="animate-fade-in print-content">
+            <div className="animate-fade-in">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-3">
                 <div className="w-full">
                   <h1 className="text-4xl font-extrabold text-slate-900 mb-2">
@@ -1309,17 +2290,13 @@ export default function App() {
                 </div>
                 <div className="flex gap-4 w-full md:w-auto justify-end">
                   <button
-                    onClick={() =>
-                      handleShare(generatedPlan, userData, stats, checkedItems)
-                    }
+                    onClick={handleShare}
                     className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:shadow-lg flex items-center gap-2"
                   >
                     <Share2 size={16} /> Share
                   </button>
                   <button
-                    onClick={() =>
-                      handlePrint(generatedPlan, userData, stats, checkedItems)
-                    }
+                    onClick={handlePrint}
                     className="px-4 py-2 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-bold rounded-xl hover:shadow-lg flex items-center gap-2"
                   >
                     <Printer size={16} /> Print
@@ -1334,15 +2311,7 @@ export default function App() {
                 stats={stats}
               />
 
-              {/* Stats Panel */}
-              <div className="bg-gradient-to-r from-white to-blue-50 p-6 rounded-3xl shadow-xl border border-blue-100 mb-8">
-                <h3 className="text-2xl font-bold text-slate-800 mb-6 border-b border-blue-100 pb-3 flex items-center gap-2">
-                  <TrendingUp size={20} /> Study Analytics
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {/* Stats cards */}
-                </div>
-              </div>
+              <StatsPanel generatedPlan={generatedPlan} userData={userData} />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                 <CalendarView
@@ -1353,13 +2322,9 @@ export default function App() {
                   generatedPlan={generatedPlan}
                   userData={userData}
                 />
-                <DailyPlanView
-                  day={selectedDay}
-                  sessions={
-                    generatedPlan
-                      ? generatedPlan.filter((s) => s.date === selectedDay)
-                      : []
-                  }
+                <DailyPlanView 
+                  day={selectedDay} 
+                  sessions={todaysSessions}
                   checkedItems={checkedItems}
                   onToggleCheck={toggleCheck}
                 />
@@ -1371,6 +2336,12 @@ export default function App() {
                   className="px-6 py-3 bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-200 text-rose-600 font-bold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2"
                 >
                   <RotateCcw size={16} /> Restart Planning
+                </button>
+                <button
+                  onClick={generateICalendar}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-600 font-bold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <Download size={16} /> Export to Calendar
                 </button>
                 <button
                   onClick={() => setStudyModeOpen(true)}
@@ -1387,7 +2358,9 @@ export default function App() {
           <p>
             StudyAI Ultimate Pro Edition • Intelligent Study Planning System
           </p>
-          <p className="mt-2">Designed with ❤️ for students worldwide</p>
+          <p className="mt-2">
+            Designed with ❤️ for students worldwide
+          </p>
         </footer>
       </div>
     </div>
