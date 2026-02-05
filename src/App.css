@@ -1,9 +1,13 @@
 @import "tailwindcss";
 #root {
+  width: 100%;             /* Add this */
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  display: flex;           /* Add this */
+  flex-direction: column;  /* Add this */
+  align-items: center;      /* Add this */
 }
 
 .logo {
